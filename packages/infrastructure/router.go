@@ -1,41 +1,54 @@
 package infrastructure
 
 import (
-	"fmt"
-	"io"
-	"log"
-	"github.com/gin-contrib/cors"
+	"github.com/ISongwuts/go-restful-execution/packages/domain"
+	"github.com/ISongwuts/go-restful-execution/packages/usecase"
 	"github.com/gin-gonic/gin"
 )
 
 type (
 	Router struct {
-		gin.Engine
+		*gin.Engine
 		Port string
 		Path string
 	}
 
 	RouterImpl interface {
-		NewRouter(port, path string) RouterImpl
 		Post()
+		Listen()
 	}
 )
 
-func (r *Router) NewRouter(port, path string) RouterImpl {
-	r.Use(cors.Default())
+func NewRouter(port, path string) RouterImpl {
 	return &Router{
-		Port: port,
-		Path: path,
+		Engine: gin.Default(),
+		Port:   port,
+		Path:   path,
 	}
 }
 
 func (r *Router) Post() {
 	r.POST(r.Path, func(ctx *gin.Context) {
-		data, err := io.ReadAll(ctx.Request.Body)
-		if err != nil {
-			log.Fatal("Err:", err)
+		var data domain.Submit
+
+		if err := ctx.BindJSON(&data); err != nil {
+			ctx.JSON(200, gin.H{"error": err})
 		}
-		fmt.Println(data)
+
+		submit := usecase.NewSubmit(data.Language, data.Code, data.SubmitAt, data.Status)
+		output, status, err := submit.TestCase()
+		if err != nil {
+			ctx.JSON(200, gin.H{"error": err})
+		}
+
+		ctx.JSON(200, gin.H{
+			"output": output,
+			"status": status,
+		})
 
 	})
+}
+
+func (r *Router) Listen() {
+	r.Run(r.Port)
 }
