@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"net/http"
+
 	"github.com/ISongwuts/go-restful-execution/packages/domain"
 	"github.com/ISongwuts/go-restful-execution/packages/usecase"
 	"github.com/gin-gonic/gin"
@@ -32,16 +34,16 @@ func (r *Router) Post() {
 		var data domain.Submit
 
 		if err := ctx.BindJSON(&data); err != nil {
-			ctx.JSON(200, gin.H{"error": err})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		}
 
 		submit := usecase.NewSubmit(data.Language, data.Code, data.SubmitAt, data.Status)
 		output, status, err := submit.TestCase()
 		if err != nil {
-			ctx.JSON(200, gin.H{"error": err})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		}
 
-		ctx.JSON(200, gin.H{
+		ctx.JSON(http.StatusOK, gin.H{
 			"output": output,
 			"status": status,
 		})
